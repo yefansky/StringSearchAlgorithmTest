@@ -5,55 +5,7 @@
 #include <Windows.h>
 #include <assert.h>
 #include <map>
-
-std::wstring GBKToUNICODE(const std::string& str)
-{
-	std::	wstring strTo;
-	int		iTextLen;
-	// wide char to multi char
-
-	iTextLen = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int)str.size(), NULL, NULL);
-	if (iTextLen > 0)
-	{
-		strTo.resize(iTextLen);
-		::MultiByteToWideChar(CP_ACP,
-			0,
-			str.c_str(),
-			(int)str.size(),
-			(wchar_t*)strTo.c_str(),
-			(int)strTo.size());
-	}
-	return strTo;
-}
-
-std::string UnicodeToANSI(const std::wstring& str)
-{
-	char* pElementText;
-	int    iTextLen;
-	// wide char to multi char
-	iTextLen = WideCharToMultiByte(CP_ACP,
-		0,
-		str.c_str(),
-		-1,
-		NULL,
-		0,
-		NULL,
-		NULL);
-	pElementText = new char[iTextLen + 1];
-	memset((void*)pElementText, 0, sizeof(char) * (iTextLen + 1));
-	::WideCharToMultiByte(CP_ACP,
-		0,
-		str.c_str(),
-		-1,
-		pElementText,
-		iTextLen,
-		NULL,
-		NULL);
-	std::string strText;
-	strText = pElementText;
-	delete[] pElementText;
-	return strText;
-}
+#include "EncodingConversion.h"
 
 typedef std::vector<std::string> DataVec;
 typedef std::vector<std::wstring> WDataVec;
@@ -109,7 +61,7 @@ void Load(DataVec& rDataVec, DataVec& rTestData, DataLenMap& rTestDataMap, int n
 	srand(0);
 	while (rTestData.size() < nTestNum)
 	{
-		std::wstring patter = GBKToUNICODE(rDataVec[rand() % rDataVec.size()]);
+		std::wstring patter = EncodingConversion::ToWString(rDataVec[rand() % rDataVec.size()]);
 		size_t uPatterLen = patter.size();
 
 		if (patter.size() > 3)
@@ -144,7 +96,7 @@ void Load(DataVec& rDataVec, DataVec& rTestData, DataLenMap& rTestDataMap, int n
 		if (rand() % 20 == 0)
 			OffsetData(patter);
 
-		rTestData.push_back(UnicodeToANSI(patter));
+		rTestData.push_back(EncodingConversion::ToString(patter));
 	}
 
 	for (int len = 1; len <= 32; len++)
@@ -156,12 +108,12 @@ void Load(DataVec& rDataVec, DataVec& rTestData, DataLenMap& rTestDataMap, int n
 		auto& rTestCase = rTestDataMap[len];
 		while (rTestCase.size() < nSizeTarget)
 		{
-			std::wstring patter = GBKToUNICODE(rDataVec[rand() % rDataVec.size()]);
+			std::wstring patter = EncodingConversion::ToWString(rDataVec[rand() % rDataVec.size()]);
 			size_t uPatterLen = patter.size();
 			size_t uStartPos = 0;
 
 			nCount++;
-			if (nCount > 1000 && rTestCase.empty())
+			if (nCount > 1000)
 				break;
 
 			if (patter.size() > 1)
@@ -188,7 +140,9 @@ void Load(DataVec& rDataVec, DataVec& rTestData, DataLenMap& rTestDataMap, int n
 			if (rand() % 20 == 0)
 				OffsetData(patter);
 
-			rTestCase.push_back(UnicodeToANSI(patter));
+			rTestCase.push_back(EncodingConversion::ToString(patter));
+
+			nCount = 0;
 		}
 	}
 
@@ -248,13 +202,13 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 		return true;
 	}
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 		for (auto& rStr : m_wDataVec)
 		{
 			size_t findPos = rStr.find(wPatter, 0);
@@ -282,13 +236,13 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 		return true;
 	}
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 		for (auto& rStr : m_wDataVec)
 		{
 			if (search(rStr, wPatter))
@@ -412,7 +366,7 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 
 		m_uCofs[0] = 1;
 		for (int i = 1; i < _countof(m_uCofs); i++)
@@ -423,7 +377,7 @@ public:
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 
 		int nPatterLen = (int)wPatter.size();
 		unsigned int uHash = 0;
@@ -513,14 +467,14 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 
 		return true;
 	}
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 
 		int nPatterLen = (int)wPatter.size();
 		unsigned int uHash = 0;
@@ -601,7 +555,7 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 
 		for (const auto& wsStr : m_wDataVec)
 			m_fingerprinters.push_back(GetFingerptinter(wsStr));
@@ -611,7 +565,7 @@ public:
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 		uint64_t ullFingerprinter = GetFingerptinter(wPatter);
 
 		for (int i = 0; i < (int)m_wDataVec.size(); i++)
@@ -665,7 +619,7 @@ public:
 	bool Init(const DataVec& crDataVec)
 	{
 		for (auto& rString : crDataVec)
-			m_wDataVec.push_back(GBKToUNICODE(rString));
+			m_wDataVec.push_back(EncodingConversion::ToWString(rString));
 
 		for (const auto& wsStr : m_wDataVec)
 			m_fingerprinters.push_back(GetFingerptinter(wsStr));
@@ -675,7 +629,7 @@ public:
 
 	bool Match(const std::string& crStrPatter)
 	{
-		std::wstring wPatter = GBKToUNICODE(crStrPatter);
+		std::wstring wPatter = EncodingConversion::ToWString(crStrPatter);
 		uint64_t ullFingerprinter = GetFingerptinter(wPatter);
 		uint64_t ullDouHash = 0;
 
